@@ -1,0 +1,17 @@
+[Unit]
+Description=BudgetForge Backend (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/budgetforge/backend
+EnvironmentFile=/opt/budgetforge/backend/.env
+ExecStart=/opt/budgetforge/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8011 --workers 2
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

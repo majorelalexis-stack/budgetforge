@@ -1,0 +1,18 @@
+[Unit]
+Description=BudgetForge Dashboard (Next.js)
+After=network.target budgetforge-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/budgetforge/dashboard
+Environment=NODE_ENV=production
+Environment=NEXT_PUBLIC_API_BASE_URL=http://localhost:8011
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
