@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
   DollarSign,
   FolderKanban,
@@ -10,7 +8,6 @@ import {
   XCircle,
   CheckCircle,
   ExternalLink,
-  ArrowLeft,
 } from "lucide-react";
 import {
   AreaChart,
@@ -168,67 +165,7 @@ export default function DemoPage() {
   }, []);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "var(--background)", color: "var(--foreground)" }}
-    >
-      {/* Orange read-only banner */}
-      <div
-        className="w-full py-2 px-4 text-center text-sm font-semibold flex items-center justify-center gap-3"
-        style={{ background: "var(--amber)", color: "#070a0f" }}
-      >
-        <span>Demo — read only</span>
-        <span style={{ opacity: 0.5 }}>·</span>
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 underline underline-offset-2 hover:opacity-80 transition-opacity"
-        >
-          Self-host for free
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-      </div>
-
-      {/* Nav */}
-      <nav
-        className="px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: "1px solid var(--border)" }}
-      >
-        <div className="flex items-center gap-3">
-          <Image
-            src="/logo.png"
-            alt="BudgetForge"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="font-bold text-lg tracking-tight">
-            LLM <span style={{ color: "var(--amber)" }}>BudgetForge</span>
-          </span>
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{
-              background: "rgba(245,158,11,0.15)",
-              color: "var(--amber)",
-              border: "1px solid rgba(245,158,11,0.3)",
-            }}
-          >
-            Demo
-          </span>
-        </div>
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition-opacity"
-          style={{ color: "var(--muted-fg)" }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-      </nav>
-
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+    <div className="p-6 max-w-5xl">
         {/* Page header */}
         <div className="mb-8">
           <h1
@@ -488,7 +425,6 @@ export default function DemoPage() {
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
-      </main>
     </div>
   );
 }
