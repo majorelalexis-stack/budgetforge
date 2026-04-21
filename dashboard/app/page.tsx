@@ -47,11 +47,11 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/dashboard"
+            href="/demo"
             className="px-6 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90"
             style={{ background: "var(--amber)", color: "#000" }}
           >
-            Open Dashboard
+            Try Demo
           </Link>
           <a
             href="https://github.com/majorelalexis-stack/budgetforge"
@@ -61,6 +61,11 @@ export default function LandingPage() {
             View on GitHub
           </a>
         </div>
+        <p className="mt-4 text-sm" style={{ color: "var(--muted)" }}>
+          <Link href="/login" className="hover:underline" style={{ color: "var(--muted)" }}>
+            Admin login →
+          </Link>
+        </p>
       </section>
 
       {/* Integration snippet */}
@@ -119,11 +124,11 @@ client = OpenAI(
       >
         <h2 className="text-2xl font-bold mb-4">Ready to stop overspending?</h2>
         <Link
-          href="/dashboard"
+          href="/demo"
           className="inline-block px-8 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90"
           style={{ background: "var(--amber)", color: "#000" }}
         >
-          Open BudgetForge →
+          Try Demo →
         </Link>
       </section>
     </div>
