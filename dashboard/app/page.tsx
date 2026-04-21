@@ -18,12 +18,8 @@ export default function LandingPage() {
             LLM <span style={{ color: "var(--amber)" }}>BudgetForge</span>
           </span>
         </div>
-        <Link
-          href="/dashboard"
-          className="text-sm px-4 py-2 rounded-lg font-semibold transition-opacity hover:opacity-90"
-          style={{ background: "var(--amber)", color: "#000" }}
-        >
-          Open Dashboard →
+        <Link href="/login" className="text-sm hover:underline" style={{ color: "var(--muted-fg)" }}>
+          Admin login →
         </Link>
       </nav>
 
@@ -61,11 +57,6 @@ export default function LandingPage() {
             View on GitHub
           </a>
         </div>
-        <p className="mt-4 text-sm" style={{ color: "var(--muted)" }}>
-          <Link href="/login" className="hover:underline" style={{ color: "var(--muted)" }}>
-            Admin login →
-          </Link>
-        </p>
       </section>
 
       {/* Integration snippet */}
