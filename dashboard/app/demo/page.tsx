@@ -141,6 +141,7 @@ export default function DemoPage() {
   const [summary, setSummary] = useState<DemoSummary | null>(null);
   const [daily, setDaily] = useState<DemoDaily[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -159,7 +160,7 @@ export default function DemoPage() {
         setSummary(summaryData);
         setDaily(dailyData);
       } catch {
-        // backend offline — page renders with empty state
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -240,6 +241,13 @@ export default function DemoPage() {
             Live demo — hardcoded data, read-only access
           </p>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="text-center py-12 text-sm" style={{ color: "var(--muted)" }}>
+            Demo data unavailable — backend offline.
+          </div>
+        )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -70,7 +70,7 @@ _DEMO_PROJECTS: list[DemoProject] = [
 
 def _build_daily() -> list[DemoDaily]:
     rng = random.Random(42)
-    today = date.today()
+    today = date(2026, 4, 21)  # Fixed anchor date for stable demo data
     entries: list[DemoDaily] = []
     for i in range(30):
         day = today - timedelta(days=29 - i)
