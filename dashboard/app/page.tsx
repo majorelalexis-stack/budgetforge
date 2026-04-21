@@ -18,9 +18,6 @@ export default function LandingPage() {
             LLM <span style={{ color: "var(--amber)" }}>BudgetForge</span>
           </span>
         </div>
-        <Link href="/login" className="text-sm hover:underline" style={{ color: "var(--muted-fg)" }}>
-          Admin login →
-        </Link>
       </nav>
 
       {/* Hero */}
