@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const PROTECTED_PATHS = ["/dashboard", "/projects", "/activity", "/settings"];
 
@@ -32,9 +32,10 @@ export function proxy(request: NextRequest): NextResponse {
   const expectedToken = computeExpectedToken(sessionSecret);
   const sessionCookie = request.cookies.get("bf_session")?.value;
 
-  if (sessionCookie === expectedToken) {
-    return NextResponse.next();
-  }
+  const a = Buffer.from(sessionCookie ?? "", "utf8");
+  const b = Buffer.from(expectedToken, "utf8");
+  const valid = a.length === b.length && timingSafeEqual(a, b);
+  if (valid) return NextResponse.next();
 
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("from", pathname);

@@ -7,7 +7,8 @@ import Image from "next/image";
 function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const from = searchParams.get("from") ?? "/dashboard";
+  const rawFrom = searchParams.get("from") ?? "/dashboard";
+  const from = rawFrom.startsWith("/") && !rawFrom.startsWith("//") ? rawFrom : "/dashboard";
 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
