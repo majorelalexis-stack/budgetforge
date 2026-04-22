@@ -159,7 +159,7 @@ class TestAlertPeriodReset:
             f"/api/projects/{proj['id']}/budget",
             json={"budget_usd": 0.0001, "alert_threshold_pct": 1, "action": "downgrade"},
         )
-        before = datetime.now()
+        before = datetime.utcnow()
         with patch("services.proxy_forwarder.ProxyForwarder.forward_openai", new_callable=AsyncMock) as mock_fwd, \
              patch("services.alert_service.AlertService.send_email"):
             mock_fwd.return_value = FAKE_OPENAI

@@ -25,7 +25,8 @@ def setup_db():
 
 @pytest.fixture(autouse=True)
 def reset_limiter():
-    """Reset rate limit counters between tests."""
+    """Re-enable limiter (conftest disables it globally) and reset counters."""
+    limiter.enabled = True
     limiter.reset()
     yield
     limiter.reset()

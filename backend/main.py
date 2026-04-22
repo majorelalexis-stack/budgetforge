@@ -1,13 +1,29 @@
+import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, date, timedelta
 from fastapi import FastAPI, Depends, Request
+
+logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 from sqlalchemy.orm import Session
+from core.config import settings
 from core.database import engine, Base, get_db
+from core.limiter import limiter
 from core.models import Usage
 from core.auth import require_viewer
 from routes.projects import router as projects_router, _compute_breakdown, UsageBreakdown, DailySpend
@@ -18,20 +34,46 @@ from routes.settings import router as settings_router
 from routes.export import router as export_router
 from routes.members import router as members_router
 from routes.demo import router as demo_router
+from routes.billing import router as billing_router
+from routes.admin import router as admin_router
+from routes.portal import router as portal_router
+from routes.signup import router as signup_router
 
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.app_env == "production":
+        missing = [
+            name
+            for name, val in [
+                ("ADMIN_API_KEY", settings.admin_api_key),
+                ("PORTAL_SECRET", settings.portal_secret),
+            ]
+            if not val
+        ]
+        if missing:
+            raise RuntimeError(
+                f"Variables obligatoires manquantes en production : {', '.join(missing)}"
+            )
+        if not settings.app_url.startswith("https"):
+            logger.warning(
+                "APP_URL='%s' ne commence pas par https — les cookies portal_session "
+                "ne seront pas Secure en production.",
+                settings.app_url,
+            )
+    yield
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 app = FastAPI(
     title="LLM BudgetForge",
     description="LLM Budget Guard — proxy layer with hard limits per project/user/agent",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,8 +83,15 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "https://llmbudget.maxiaworld.app",
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Provider-Key",
+        "X-Agent-Name",
+        "X-Admin-Key",
+    ],
+    allow_credentials=True,
 )
 
 app.include_router(projects_router)
@@ -53,6 +102,10 @@ app.include_router(settings_router)
 app.include_router(export_router)
 app.include_router(members_router)
 app.include_router(demo_router)
+app.include_router(billing_router)
+app.include_router(admin_router)
+app.include_router(portal_router)
+app.include_router(signup_router)
 
 
 @app.get("/health")

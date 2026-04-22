@@ -1,7 +1,8 @@
 import asyncio
 import time
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from core.auth import require_viewer
 from core.config import settings
 
 router = APIRouter(prefix="/api", tags=["models"])
@@ -145,7 +146,7 @@ async def _fetch_ollama_models() -> list[str]:
     return _store("ollama", OLLAMA_FALLBACK)
 
 
-@router.get("/models")
+@router.get("/models", dependencies=[Depends(require_viewer)])
 async def get_models() -> dict:
     openai_models, anthropic_models, google_models, deepseek_models, ollama_models = await asyncio.gather(
         _fetch_openai_models(),

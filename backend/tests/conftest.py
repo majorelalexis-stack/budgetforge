@@ -22,6 +22,7 @@ def _mock_api_keys(monkeypatch):
     monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-test")
     monkeypatch.setattr(settings, "google_api_key", "AIza-test")
     monkeypatch.setattr(settings, "deepseek_api_key", "sk-test-deepseek")
+    monkeypatch.setattr(settings, "portal_secret", "test-portal-secret")
 
 
 @pytest.fixture(autouse=True)

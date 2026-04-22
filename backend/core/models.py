@@ -32,6 +32,9 @@ class Project(Base):
     downgrade_chain = Column(String, nullable=True)     # JSON list e.g. '["gpt-4o-mini","claude-haiku-4-5"]'
     proxy_timeout_ms = Column(Integer, nullable=True)   # None = use default 60s
     proxy_retries = Column(Integer, nullable=True, default=0)
+    plan = Column(String, nullable=False, default="free")  # free / pro / agency / ltd
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     usages = relationship("Usage", back_populates="project", cascade="all, delete-orphan")
 
@@ -54,6 +57,25 @@ class Member(Base):
                      default=lambda: f"bf-mbr-{secrets.token_urlsafe(24)}")
     role = Column(String, nullable=False, default="viewer")  # "admin" or "viewer"
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+
+class PortalToken(Base):
+    __tablename__ = "portal_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, nullable=False, index=True)
+    token = Column(String, unique=True, nullable=False, index=True,
+                   default=lambda: secrets.token_urlsafe(32))
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+
+class SignupAttempt(Base):
+    __tablename__ = "signup_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 
 class Usage(Base):

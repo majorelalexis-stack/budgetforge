@@ -217,6 +217,50 @@ class TestAnthropicProxy:
         assert resp.status_code == 429
 
 
+class TestProviderKey:
+    @pytest.mark.asyncio
+    async def test_x_provider_key_is_forwarded_to_llm(self, client, project_with_budget):
+        """X-Provider-Key envoyé → utilisé pour l'appel OpenAI (pas la clé settings)."""
+        api_key = project_with_budget["api_key"]
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_openai", new_callable=AsyncMock) as mock_fwd:
+            mock_fwd.return_value = FAKE_OPENAI_RESPONSE
+            await client.post(
+                "/proxy/openai/v1/chat/completions",
+                json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": f"Bearer {api_key}", "X-Provider-Key": "sk-client-custom-key"},
+            )
+        used_key = mock_fwd.call_args[0][1]
+        assert used_key == "sk-client-custom-key"
+
+    @pytest.mark.asyncio
+    async def test_missing_provider_key_no_settings_returns_400(self, client, project_with_budget, monkeypatch):
+        """Pas de X-Provider-Key ET settings vide → 400."""
+        from core.config import settings
+        monkeypatch.setattr(settings, "openai_api_key", "")
+        api_key = project_with_budget["api_key"]
+        resp = await client.post(
+            "/proxy/openai/v1/chat/completions",
+            json={"model": "gpt-4o", "messages": []},
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert resp.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_settings_key_used_when_no_x_provider_key(self, client, project_with_budget):
+        """Sans X-Provider-Key, fallback sur la clé settings (mode actuel)."""
+        api_key = project_with_budget["api_key"]
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_openai", new_callable=AsyncMock) as mock_fwd:
+            mock_fwd.return_value = FAKE_OPENAI_RESPONSE
+            resp = await client.post(
+                "/proxy/openai/v1/chat/completions",
+                json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        assert resp.status_code == 200
+        used_key = mock_fwd.call_args[0][1]
+        assert used_key == "sk-test-openai"  # clé injectée par conftest
+
+
 class TestOllamaProxy:
     @pytest.mark.asyncio
     async def test_proxy_ollama_counts_tokens_zero_cost(self, client, project_with_budget):

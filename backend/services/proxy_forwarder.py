@@ -84,6 +84,34 @@ class ProxyForwarder:
                     yield chunk
 
     @staticmethod
+    async def forward_google_stream(request_body: dict, api_key: str, timeout_s: float = 120.0):
+        """Google Gemini OpenAI-compat streaming."""
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            async with client.stream(
+                "POST",
+                "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                json=request_body,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            ) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+
+    @staticmethod
+    async def forward_deepseek_stream(request_body: dict, api_key: str, timeout_s: float = 120.0):
+        """DeepSeek OpenAI-compat streaming."""
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            async with client.stream(
+                "POST",
+                "https://api.deepseek.com/v1/chat/completions",
+                json=request_body,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            ) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+
+    @staticmethod
     async def forward_ollama(request_body: dict) -> dict:
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
@@ -93,3 +121,47 @@ class ProxyForwarder:
             )
             resp.raise_for_status()
             return resp.json()
+
+    @staticmethod
+    async def forward_ollama_stream(request_body: dict, timeout_s: float = 120.0):
+        """Streaming natif Ollama — retourne des chunks newline-JSON."""
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            async with client.stream(
+                "POST",
+                f"{settings.ollama_base_url}/api/chat",
+                json={**request_body, "stream": True},
+                headers={"Content-Type": "application/json"},
+            ) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+
+    @staticmethod
+    async def forward_ollama_openai_compat(
+        request_body: dict, api_key: str = "", timeout_s: float = 60.0
+    ) -> dict:
+        """Endpoint OpenAI-compatible d'Ollama (/v1/chat/completions)."""
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            resp = await client.post(
+                f"{settings.ollama_base_url}/v1/chat/completions",
+                json=request_body,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    @staticmethod
+    async def forward_ollama_openai_compat_stream(
+        request_body: dict, api_key: str = "", timeout_s: float = 120.0
+    ):
+        """Streaming OpenAI-compatible via Ollama — retourne des chunks SSE."""
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            async with client.stream(
+                "POST",
+                f"{settings.ollama_base_url}/v1/chat/completions",
+                json=request_body,
+                headers={"Content-Type": "application/json"},
+            ) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk

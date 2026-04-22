@@ -225,3 +225,79 @@ class TestAnthropicStreaming:
         usage = (await client.get(f"/api/projects/{project_with_budget['id']}/usage")).json()
         assert usage["used_usd"] > 0.0
         assert usage["calls"] == 1
+
+
+class TestGoogleStreaming:
+    @pytest.mark.asyncio
+    async def test_google_stream_returns_event_stream(self, client, project_with_budget):
+        """stream=True Google → text/event-stream."""
+        api_key = project_with_budget["api_key"]
+
+        async def fake_stream(request_body, api_key_param, **kwargs):
+            for chunk in OPENAI_SSE_CHUNKS:
+                yield chunk
+
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_google_stream", new=fake_stream):
+            resp = await client.post(
+                "/proxy/google/v1/chat/completions",
+                json={"model": "gemini-2.0-flash", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        assert resp.status_code == 200
+        assert "text/event-stream" in resp.headers.get("content-type", "")
+
+    @pytest.mark.asyncio
+    async def test_google_stream_records_usage(self, client, project_with_budget):
+        """Usage (10 in / 5 out) extrait du chunk final et enregistré pour Google stream."""
+        api_key = project_with_budget["api_key"]
+
+        async def fake_stream(request_body, api_key_param, **kwargs):
+            for chunk in OPENAI_SSE_CHUNKS:
+                yield chunk
+
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_google_stream", new=fake_stream):
+            await client.post(
+                "/proxy/google/v1/chat/completions",
+                json={"model": "gemini-2.0-flash", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        usage = (await client.get(f"/api/projects/{project_with_budget['id']}/usage")).json()
+        assert usage["calls"] == 1
+
+
+class TestDeepSeekStreaming:
+    @pytest.mark.asyncio
+    async def test_deepseek_stream_returns_event_stream(self, client, project_with_budget):
+        """stream=True DeepSeek → text/event-stream."""
+        api_key = project_with_budget["api_key"]
+
+        async def fake_stream(request_body, api_key_param, **kwargs):
+            for chunk in OPENAI_SSE_CHUNKS:
+                yield chunk
+
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_deepseek_stream", new=fake_stream):
+            resp = await client.post(
+                "/proxy/deepseek/v1/chat/completions",
+                json={"model": "deepseek-chat", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        assert resp.status_code == 200
+        assert "text/event-stream" in resp.headers.get("content-type", "")
+
+    @pytest.mark.asyncio
+    async def test_deepseek_stream_records_usage(self, client, project_with_budget):
+        """Usage extrait et enregistré pour DeepSeek stream."""
+        api_key = project_with_budget["api_key"]
+
+        async def fake_stream(request_body, api_key_param, **kwargs):
+            for chunk in OPENAI_SSE_CHUNKS:
+                yield chunk
+
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_deepseek_stream", new=fake_stream):
+            await client.post(
+                "/proxy/deepseek/v1/chat/completions",
+                json={"model": "deepseek-chat", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        usage = (await client.get(f"/api/projects/{project_with_budget['id']}/usage")).json()
+        assert usage["calls"] == 1

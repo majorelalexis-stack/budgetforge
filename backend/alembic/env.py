@@ -9,7 +9,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from core.database import Base
-from core.models import Project, Usage  # noqa: F401 — registers models
+from core.models import Project, Usage, SiteSetting, Member, PortalToken, SignupAttempt  # noqa: F401
 from core.config import settings
 
 config = context.config

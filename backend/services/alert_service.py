@@ -38,7 +38,7 @@ class AlertService:
         return any(host.endswith(h) for h in _SLACK_HOSTS)
 
     @staticmethod
-    async def send_webhook(url: str, project_name: str, used_usd: float, budget_usd: float) -> None:
+    async def send_webhook(url: str, project_name: str, used_usd: float, budget_usd: float) -> bool:
         pct = round(used_usd / budget_usd * 100, 1) if budget_usd > 0 else 100
         if AlertService._is_slack_compatible(url):
             payload = {
@@ -67,8 +67,10 @@ class AlertService:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 await client.post(url, json=payload)
+            return True
         except Exception as e:
             logger.warning(f"Webhook alert failed for {project_name}: {e}")
+            return False
 
     @staticmethod
     def send_email(
@@ -77,7 +79,7 @@ class AlertService:
         used_usd: float,
         budget_usd: float,
         db: Session | None = None,
-    ) -> None:
+    ) -> bool:
         cfg = get_smtp_config(db) if db is not None else {
             "smtp_host":        settings.smtp_host,
             "smtp_port":        settings.smtp_port,
@@ -87,7 +89,7 @@ class AlertService:
         }
         if not cfg["smtp_host"]:
             logger.warning("SMTP not configured, skipping email alert")
-            return
+            return False
         pct = round(used_usd / budget_usd * 100, 1) if budget_usd > 0 else 100
         msg = MIMEText(
             f"Project '{project_name}' has used ${used_usd:.4f} of ${budget_usd:.2f} budget ({pct}%)."
@@ -101,5 +103,7 @@ class AlertService:
                 if cfg["smtp_user"]:
                     server.login(cfg["smtp_user"], cfg["smtp_password"])
                 server.sendmail(cfg["alert_from_email"], to, msg.as_string())
+            return True
         except Exception as e:
             logger.warning(f"Email alert failed for {project_name}: {e}")
+            return False

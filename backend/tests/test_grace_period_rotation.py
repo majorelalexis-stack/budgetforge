@@ -100,7 +100,7 @@ class TestGracePeriodRotation:
 
         # Simulate grace period expiry by backdating key_rotated_at
         db_proj = test_db.query(Project).filter(Project.id == proj["id"]).first()
-        db_proj.key_rotated_at = datetime.now() - timedelta(minutes=6)
+        db_proj.key_rotated_at = datetime.utcnow() - timedelta(minutes=6)
         test_db.commit()
 
         resp = await client.post(

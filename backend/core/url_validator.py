@@ -1,4 +1,5 @@
 import ipaddress
+import socket
 from urllib.parse import urlparse
 
 _BLOCKED_NETWORKS = [
@@ -37,7 +38,20 @@ def is_safe_webhook_url(url: str) -> bool:
                 if addr in network:
                     return False
         except ValueError:
-            pass  # domain name, pas une IP — autorisé par défaut
+            # domain name — résoudre DNS et vérifier chaque IP résolue
+            try:
+                resolved = socket.getaddrinfo(hostname, None)
+            except OSError:
+                return False  # non résolvable → refus fail-safe
+            for item in resolved:
+                ip_str = item[4][0]
+                try:
+                    addr = ipaddress.ip_address(ip_str)
+                    for network in _BLOCKED_NETWORKS:
+                        if addr in network:
+                            return False
+                except ValueError:
+                    pass
         return True
     except Exception:
         return False

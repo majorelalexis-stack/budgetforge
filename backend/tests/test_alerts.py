@@ -131,3 +131,27 @@ class TestAlertTriggered:
         proj = (await client.post("/api/projects", json={"name": "email-persist", "alert_email": "alex@test.com"})).json()
         detail = (await client.get(f"/api/projects/{proj['id']}")).json()
         assert detail.get("alert_email") == "alex@test.com"
+
+    @pytest.mark.asyncio
+    async def test_alert_retried_when_email_fails(self, client):
+        """Si send_email retourne False (échec SMTP), alert_sent n'est pas marqué → retentative au prochain appel."""
+        proj = (await client.post("/api/projects", json={"name": "email-fail-retry", "alert_email": "user@test.com"})).json()
+        await client.put(
+            f"/api/projects/{proj['id']}/budget",
+            json={"budget_usd": 0.0001, "alert_threshold_pct": 1, "action": "downgrade"},
+        )
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_openai", new_callable=AsyncMock) as mock_fwd, \
+             patch("services.alert_service.AlertService.send_email", return_value=False) as mock_email:
+            mock_fwd.return_value = FAKE_OPENAI_RESPONSE
+            await client.post(
+                "/proxy/openai/v1/chat/completions",
+                json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": f"Bearer {proj['api_key']}"},
+            )
+            await client.post(
+                "/proxy/openai/v1/chat/completions",
+                json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": f"Bearer {proj['api_key']}"},
+            )
+        # Email failed → alert_sent never set → both calls triggered an alert attempt
+        assert mock_email.call_count == 2

@@ -1,7 +1,7 @@
 import json
 import re
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from core.auth import require_admin, require_viewer
 from core.url_validator import is_safe_webhook_url
 from services.budget_guard import BudgetGuard, get_period_start
 from services.cost_calculator import CostCalculator
+from services.plan_quota import PLAN_LIMITS, get_calls_this_month
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 guard = BudgetGuard()
@@ -66,11 +67,24 @@ class BudgetUpdate(BaseModel):
     proxy_timeout_ms: Optional[int] = Field(None, ge=1000, le=300000)
     proxy_retries: Optional[int] = Field(None, ge=0, le=5)
 
+    @field_validator("downgrade_chain")
+    @classmethod
+    def validate_downgrade_chain(cls, v: list[str]) -> list[str]:
+        if len(v) > 10:
+            raise ValueError("downgrade_chain ne peut pas dépasser 10 éléments.")
+        for i in range(len(v) - 1):
+            if v[i] == v[i + 1]:
+                raise ValueError(
+                    f"downgrade_chain contient des doublons consécutifs : '{v[i]}' à l'index {i} et {i+1}."
+                )
+        return v
+
 
 class ProjectResponse(BaseModel):
     id: int
     name: str
     api_key: str
+    plan: str = "free"
     budget_usd: Optional[float] = None
     alert_threshold_pct: Optional[int] = None
     action: Optional[str] = None
@@ -104,6 +118,7 @@ class BudgetResponse(BaseModel):
     max_cost_per_call_usd: Optional[float] = None
     proxy_timeout_ms: Optional[int] = None
     proxy_retries: Optional[int] = None
+    warning: Optional[str] = None
 
 
 class UsageSummary(BaseModel):
@@ -122,7 +137,7 @@ def _compute_forecast(period_usages: list, remaining_usd: float) -> Optional[flo
     if used <= 0:
         return None
     earliest = min(u.created_at for u in period_usages)
-    days_elapsed = (datetime.now() - earliest).total_seconds() / 86400
+    days_elapsed = (datetime.now(timezone.utc).replace(tzinfo=None) - earliest).total_seconds() / 86400
     if days_elapsed < 1 / 1440:
         return None
     burn_rate = used / days_elapsed
@@ -220,6 +235,9 @@ def set_budget(project_id: int, payload: BudgetUpdate, db: Session = Depends(get
     project.alert_sent_at = None
     db.commit()
     db.refresh(project)
+    warning = None
+    if project.budget_usd == 0 and project.action == BudgetActionEnum.block:
+        warning = "budget_usd=0 avec action=block bloquera immédiatement toutes les requêtes."
     return BudgetResponse(
         budget_usd=project.budget_usd,
         alert_threshold_pct=project.alert_threshold_pct,
@@ -228,6 +246,7 @@ def set_budget(project_id: int, payload: BudgetUpdate, db: Session = Depends(get
         max_cost_per_call_usd=project.max_cost_per_call_usd,
         proxy_timeout_ms=project.proxy_timeout_ms,
         proxy_retries=project.proxy_retries,
+        warning=warning,
     )
 
 
@@ -290,7 +309,7 @@ def get_daily_usage(project_id: int, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    today = datetime.now().date()
+    today = datetime.now(timezone.utc).replace(tzinfo=None).date()
     start = today - timedelta(days=29)
 
     usages = db.query(Usage).filter(
@@ -316,7 +335,7 @@ def rotate_key(project_id: int, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     project.previous_api_key = project.api_key
-    project.key_rotated_at = datetime.now()
+    project.key_rotated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     project.api_key = f"bf-{secrets.token_urlsafe(32)}"
     db.commit()
     db.refresh(project)
@@ -349,4 +368,63 @@ def get_agent_breakdown(project_id: int, db: Session = Depends(get_db)):
     return AgentBreakdown(
         agents={k: AgentStats(**v) for k, v in agents.items()},
         total_calls=sum(v["calls"] for v in agents.values()),
+    )
+
+
+_VALID_PLANS = frozenset(PLAN_LIMITS.keys())
+
+
+_PAID_PLANS = {"pro", "agency"}
+
+
+class PlanUpdate(BaseModel):
+    plan: str
+    force: bool = False
+
+    @field_validator("plan")
+    @classmethod
+    def validate_plan(cls, v: str) -> str:
+        if v not in _VALID_PLANS:
+            raise ValueError(f"Invalid plan '{v}'. Valid: {sorted(_VALID_PLANS)}")
+        return v
+
+
+class PlanStatus(BaseModel):
+    plan: str
+    calls_this_month: int
+    calls_limit: int
+
+
+@router.get("/{project_id}/plan", response_model=PlanStatus, dependencies=[Depends(require_viewer)])
+def get_plan(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    plan = project.plan or "free"
+    return PlanStatus(
+        plan=plan,
+        calls_this_month=get_calls_this_month(project_id, db),
+        calls_limit=PLAN_LIMITS.get(plan, PLAN_LIMITS["free"]),
+    )
+
+
+@router.put("/{project_id}/plan", response_model=PlanStatus, dependencies=[Depends(require_admin)])
+def set_plan(project_id: int, payload: PlanUpdate, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if payload.plan in _PAID_PLANS and not payload.force:
+        if not project.stripe_subscription_id:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Plan '{payload.plan}' requires a Stripe subscription. "
+                       "Pass force=true for manual override.",
+            )
+    project.plan = payload.plan
+    db.commit()
+    db.refresh(project)
+    return PlanStatus(
+        plan=project.plan,
+        calls_this_month=get_calls_this_month(project_id, db),
+        calls_limit=PLAN_LIMITS.get(project.plan, PLAN_LIMITS["free"]),
     )

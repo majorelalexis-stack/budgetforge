@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional
 
@@ -33,11 +33,16 @@ _DOWNGRADE_MAP: dict[str, str] = {
     "gemini-2.0-flash-thinking": "gemini-2.0-flash",
     # DeepSeek
     "deepseek-reasoner":        "deepseek-chat",
+    # Ollama fallback (local, $0) — fallback de dernier recours quand le budget cloud est épuisé
+    "gpt-4o-mini":              "ollama/llama3",
+    "claude-haiku-4-5":         "ollama/llama3",
+    "gemini-1.5-flash":         "ollama/llama3",
+    "deepseek-chat":            "ollama/llama3",
 }
 
 
 def get_period_start(reset_period: str) -> datetime:
-    now = datetime.now()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     if reset_period == "monthly":
         return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     if reset_period == "weekly":
