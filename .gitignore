@@ -1,0 +1,15 @@
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+*.pyc
+*.pyo
+.coverage
+htmlcov/
+venv/
+.venv/
+*.egg-info/
+dist/
+.env
+node_modules/
+.next/
