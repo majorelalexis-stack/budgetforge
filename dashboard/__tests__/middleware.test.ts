@@ -1,13 +1,17 @@
 /**
- * P1.4 TDD RED — proxy.ts : tokens timestamp-based (ts.hmac)
+ * middleware.ts — session-cookie protected routes
+ *
  * Vérifie que :
- * - token valide (hmac ok, < 24h) → pass through
- * - token expiré (> 24h) → redirect /login
+ * - token HMAC valide → pass through
  * - HMAC invalide → redirect /login
- * - ancien format statique (sans timestamp) → redirect /login
  * - aucun cookie → redirect /login
+ * - dev mode (DASHBOARD_PASSWORD vide) → pass through
+ * - non-protected path → pass through
+ *
+ * Note : les cases "timestamp-based token" (expiry 24h) ne sont pas
+ * encore implémentées dans middleware.ts (format statique actuellement).
  */
-import { proxy } from "../proxy";
+import { middleware } from "../middleware";
 import { NextRequest } from "next/server";
 import { createHmac } from "crypto";
 
@@ -38,7 +42,7 @@ describe("proxy — timestamp token verification (P1.4)", () => {
   it("valid token (correct HMAC, recent timestamp) → not a redirect", () => {
     const token = makeToken(Date.now(), SECRET);
     const req = makeRequest("/dashboard", token);
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toBeNull();
   });
 
@@ -46,7 +50,7 @@ describe("proxy — timestamp token verification (P1.4)", () => {
     const ts = Date.now() - 25 * 3600 * 1000;
     const token = makeToken(ts, SECRET);
     const req = makeRequest("/dashboard", token);
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toContain("/login");
   });
 
@@ -54,33 +58,33 @@ describe("proxy — timestamp token verification (P1.4)", () => {
     const ts = Date.now();
     const token = `${ts}.badhashbadhashbadhashbadhashbadhashbadhashbadhashbadhashbadhash`;
     const req = makeRequest("/dashboard", token);
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toContain("/login");
   });
 
   it("old static token format (no timestamp) → redirect to /login", () => {
     const oldToken = createHmac("sha256", SECRET).update("session").digest("hex");
     const req = makeRequest("/dashboard", oldToken);
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toContain("/login");
   });
 
   it("no cookie → redirect to /login", () => {
     const req = makeRequest("/dashboard");
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toContain("/login");
   });
 
   it("dev mode (no DASHBOARD_PASSWORD) → pass through without cookie", () => {
     delete process.env.DASHBOARD_PASSWORD;
     const req = makeRequest("/dashboard");
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toBeNull();
   });
 
   it("non-protected path → pass through", () => {
     const req = makeRequest("/login");
-    const resp = proxy(req);
+    const resp = middleware(req);
     expect(resp.headers.get("location")).toBeNull();
   });
 });

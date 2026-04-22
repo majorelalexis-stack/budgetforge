@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -245,7 +245,7 @@ export default function ProjectDetailPage({
     }
   }
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setRefreshError(null);
     try {
       const p = await api.projects.get(Number(id));
@@ -275,9 +275,9 @@ export default function ProjectDetailPage({
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, router]);
 
-  useEffect(() => { refresh(); }, [id]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
     api.models().then((data) => {

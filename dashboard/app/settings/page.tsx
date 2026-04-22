@@ -89,7 +89,9 @@ function SmtpForm({ onSaved }: { onSaved: () => void }) {
         alert_from_email: s.alert_from_email,
       });
       setPasswordSet(s.smtp_password_set);
-    }).catch(() => {});
+    }).catch((e) => {
+      setError(e instanceof Error ? e.message : "Could not load SMTP settings. Please refresh.");
+    });
   }, []);
 
   async function save() {

@@ -113,7 +113,14 @@ function PortalContent() {
       fetch(`/api/portal/verify?token=${token}`)
         .then((r) => r.ok ? r.json() : Promise.reject(r.status))
         .then((data) => setProjects(data.projects))
-        .catch(() => setError("This link is invalid or has expired. Request a new one below."))
+        .catch((status) => {
+          if (typeof status === "number" && status >= 500) {
+            setError("Our server is temporarily unavailable. Please try again in a moment.");
+          } else {
+            // 401, 404, token invalide/expiré
+            setError("This link is invalid or has expired. Request a new one below.");
+          }
+        })
         .finally(() => setChecking(false));
     } else {
       // pas de token → essayer le cookie session existant (pas de token disponible)
@@ -128,9 +135,22 @@ function PortalContent() {
   async function handleRequest(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await fetch("/api/portal/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-    setSent(true);
-    setLoading(false);
+    setError(null);
+    try {
+      const resp = await fetch("/api/portal/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      setSent(true);
+    } catch {
+      setError("Could not send the link right now. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
