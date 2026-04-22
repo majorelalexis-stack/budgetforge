@@ -14,7 +14,7 @@ function isProtected(pathname: string): boolean {
   );
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const dashboardPassword = process.env.DASHBOARD_PASSWORD ?? "";
 
   // Dev mode: no password set → pass through

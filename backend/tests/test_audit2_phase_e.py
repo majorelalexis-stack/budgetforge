@@ -6,7 +6,7 @@ Findings couverts :
   E2 [L3] — portal/page.tsx : distinguer 401 vs 500 sur verify
   E3 [L5] — settings/page.tsx : afficher erreur si API down
   E4 [L7] — CTA "Try Free →" → href /portal
-  E5 [M3] — middleware.ts actif (rename proxy.ts → middleware.ts)
+  E5 [M3] — proxy.ts actif (Next.js 16 middleware file)
   E6 [L1] — routes/proxy.py découpé (<400 lignes ou dispatcher extrait)
   E7 [L6] — projects/[id]/page.tsx : useCallback sur refresh
   E8 [H9p] — /api/usage/history sans project_id → limite 500 lignes + warning
@@ -191,41 +191,53 @@ class TestE4FreeCTALinksToPortal:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# E5 [M3] — middleware.ts actif (Next.js cherche ce nom exact)
-# État : proxy.ts existe mais Next.js ignore ce nom → RED
+# E5 [M3] — proxy.ts actif (Next.js 16 a renommé middleware.ts → proxy.ts)
+# Référence : dashboard/AGENTS.md + erreur de build "middleware-to-proxy"
 # ──────────────────────────────────────────────────────────────────────────────
 
-class TestE5MiddlewareFileActive:
-    def test_middleware_file_exists(self):
-        """Next.js 14+ charge UNIQUEMENT dashboard/middleware.ts ou src/middleware.ts."""
+class TestE5ProxyFileActive:
+    def test_proxy_file_exists(self):
+        """Next.js 16 charge UNIQUEMENT dashboard/proxy.ts (ex-middleware.ts)."""
         candidates = [
-            os.path.join(DASHBOARD_ROOT, "middleware.ts"),
-            os.path.join(DASHBOARD_ROOT, "src", "middleware.ts"),
+            os.path.join(DASHBOARD_ROOT, "proxy.ts"),
+            os.path.join(DASHBOARD_ROOT, "src", "proxy.ts"),
         ]
         exists = any(os.path.isfile(c) for c in candidates)
         assert exists, (
-            "Aucun fichier middleware.ts trouvé. Next.js ne charge PAS proxy.ts. "
-            "Renommer proxy.ts → middleware.ts (et export proxy → export middleware)."
+            "Aucun fichier proxy.ts trouvé. Next.js 16 ne charge plus middleware.ts — "
+            "il faut un proxy.ts qui exporte la fonction 'proxy'."
         )
 
-    def test_middleware_exports_middleware_function(self):
-        """Le fichier middleware doit exporter une fonction nommée 'middleware'."""
-        for candidate in [
+    def test_no_middleware_file_coexisting(self):
+        """Next.js 16 refuse le build si middleware.ts ET proxy.ts coexistent."""
+        offenders = [
             os.path.join(DASHBOARD_ROOT, "middleware.ts"),
             os.path.join(DASHBOARD_ROOT, "src", "middleware.ts"),
+        ]
+        present = [p for p in offenders if os.path.isfile(p)]
+        assert not present, (
+            f"middleware.ts détecté ({present}). Next.js 16 refuse de builder "
+            f"si middleware.ts et proxy.ts coexistent. Supprimer middleware.ts."
+        )
+
+    def test_proxy_exports_proxy_function(self):
+        """Le fichier proxy.ts doit exporter une fonction nommée 'proxy'."""
+        for candidate in [
+            os.path.join(DASHBOARD_ROOT, "proxy.ts"),
+            os.path.join(DASHBOARD_ROOT, "src", "proxy.ts"),
         ]:
             if os.path.isfile(candidate):
                 with open(candidate, "r", encoding="utf-8") as f:
                     content = f.read()
                 assert re.search(
-                    r"export\s+(?:function\s+middleware|const\s+middleware\s*=|\{[^}]*\bmiddleware\b[^}]*\})",
+                    r"export\s+(?:function\s+proxy|const\s+proxy\s*=|\{[^}]*\bproxy\b[^}]*\})",
                     content,
                 ), (
-                    f"{candidate} doit exporter une fonction 'middleware'. "
-                    f"Next.js ne détecte aucun autre nom."
+                    f"{candidate} doit exporter une fonction 'proxy'. "
+                    f"Next.js 16 ne détecte aucun autre nom."
                 )
                 return
-        pytest.fail("middleware.ts introuvable — test précédent aurait dû le catch")
+        pytest.fail("proxy.ts introuvable — test précédent aurait dû le catch")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
