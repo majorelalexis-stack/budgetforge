@@ -126,49 +126,44 @@ class TestCleanupExpiredTokens:
 # ── P6.2 — Déduplication handlers proxy ────────────────────────────────────────
 
 class TestProxyDispatchRefactor:
+    """E6 : les dispatchers sont extraits dans services.proxy_dispatcher."""
 
     def test_dispatch_openai_format_exists(self):
-        """_dispatch_openai_format doit exister dans routes.proxy."""
-        from routes.proxy import _dispatch_openai_format  # noqa: F401
+        from services.proxy_dispatcher import dispatch_openai_format  # noqa: F401
 
     def test_dispatch_anthropic_format_exists(self):
-        """_dispatch_anthropic_format doit exister dans routes.proxy."""
-        from routes.proxy import _dispatch_anthropic_format  # noqa: F401
+        from services.proxy_dispatcher import dispatch_anthropic_format  # noqa: F401
 
     def test_proxy_openai_calls_dispatch(self):
-        """proxy_openai doit appeler _dispatch_openai_format."""
         import inspect
         from routes import proxy
         source = inspect.getsource(proxy.proxy_openai)
-        assert "_dispatch_openai_format" in source, (
-            "proxy_openai doit déléguer à _dispatch_openai_format"
+        assert "dispatch_openai_format" in source, (
+            "proxy_openai doit déléguer à proxy_dispatcher.dispatch_openai_format"
         )
 
     def test_proxy_google_calls_dispatch(self):
-        """proxy_google doit appeler _dispatch_openai_format."""
         import inspect
         from routes import proxy
         source = inspect.getsource(proxy.proxy_google)
-        assert "_dispatch_openai_format" in source, (
-            "proxy_google doit déléguer à _dispatch_openai_format"
+        assert "dispatch_openai_format" in source, (
+            "proxy_google doit déléguer à proxy_dispatcher.dispatch_openai_format"
         )
 
     def test_proxy_deepseek_calls_dispatch(self):
-        """proxy_deepseek doit appeler _dispatch_openai_format."""
         import inspect
         from routes import proxy
         source = inspect.getsource(proxy.proxy_deepseek)
-        assert "_dispatch_openai_format" in source, (
-            "proxy_deepseek doit déléguer à _dispatch_openai_format"
+        assert "dispatch_openai_format" in source, (
+            "proxy_deepseek doit déléguer à proxy_dispatcher.dispatch_openai_format"
         )
 
     def test_proxy_anthropic_calls_dispatch(self):
-        """proxy_anthropic doit appeler _dispatch_anthropic_format."""
         import inspect
         from routes import proxy
         source = inspect.getsource(proxy.proxy_anthropic)
-        assert "_dispatch_anthropic_format" in source, (
-            "proxy_anthropic doit déléguer à _dispatch_anthropic_format"
+        assert "dispatch_anthropic_format" in source, (
+            "proxy_anthropic doit déléguer à proxy_dispatcher.dispatch_anthropic_format"
         )
 
 

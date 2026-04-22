@@ -36,6 +36,10 @@ class HistoryPage(BaseModel):
     page_size: int
     pages: int
     total_cost_usd: float
+    warning: Optional[str] = None
+
+
+_UNFILTERED_HARD_CAP = 500
 
 
 @router.get("/history", response_model=HistoryPage, dependencies=[Depends(require_viewer)])
@@ -63,12 +67,21 @@ def get_history(
 
     query = db.query(Usage).join(Project, Usage.project_id == Project.id).filter(*base_filter)
 
-    total = query.count()
+    raw_total = query.count()
     total_cost = (
         db.query(func.sum(Usage.cost_usd))
         .join(Project, Usage.project_id == Project.id)
         .filter(*base_filter)
         .scalar() or 0.0
+    )
+
+    # H9p — sans project_id, borne l'accès à 500 lignes pour protéger le front.
+    truncated = project_id is None and raw_total > _UNFILTERED_HARD_CAP
+    total = _UNFILTERED_HARD_CAP if truncated else raw_total
+    warning = (
+        f"Results limited to {_UNFILTERED_HARD_CAP} rows. "
+        "Filter by project_id to see the full history."
+        if truncated else None
     )
     pages = ceil(total / page_size) if total > 0 else 0
 
@@ -103,4 +116,5 @@ def get_history(
         page_size=page_size,
         pages=pages,
         total_cost_usd=round(total_cost, 6),
+        warning=warning,
     )
