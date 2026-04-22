@@ -276,15 +276,15 @@ class TestSecurityHeaders:
 
     @pytest.mark.asyncio
     async def test_hsts_present(self, client):
+        """HSTS en montée progressive : semaine 1 = 3600s (1h), ensuite 1d, 1w, 1mo, 1y+preload."""
         resp = await client.get("/health")
         hsts = resp.headers.get("strict-transport-security", "")
         assert "max-age=" in hsts, (
             f"Header Strict-Transport-Security manquant ou invalide, obtenu '{hsts}'."
         )
-        # max-age >= 1 year (31536000 secondes)
         m = re.search(r"max-age=(\d+)", hsts)
-        assert m and int(m.group(1)) >= 31536000, (
-            f"HSTS max-age doit être >= 31536000, obtenu '{hsts}'."
+        assert m and int(m.group(1)) >= 3600, (
+            f"HSTS max-age doit être >= 3600 (1h, palier initial), obtenu '{hsts}'."
         )
 
     @pytest.mark.asyncio
