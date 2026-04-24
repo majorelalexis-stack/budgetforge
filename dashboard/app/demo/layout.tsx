@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderKanban, Zap, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Zap, Settings, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/demo",          label: "Overview",  icon: LayoutDashboard },
-  { href: "/demo/projects", label: "Projects",  icon: FolderKanban },
-  { href: "/demo/activity", label: "Activity",  icon: Zap },
+  { href: "/demo",          label: "Overview",  icon: LayoutDashboard, disabled: false },
+  { href: "/demo/projects", label: "Projects",  icon: FolderKanban,    disabled: false },
+  { href: "/demo/activity", label: "Activity",  icon: Zap,             disabled: false },
+  { href: "/demo/settings", label: "Settings",  icon: Settings,        disabled: true  },
 ];
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
@@ -42,17 +43,28 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
           {/* Nav */}
           <nav className="flex flex-col gap-1 p-3 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-widest px-2 mb-1 mt-2" style={{ color: "var(--muted-fg)" }}>Menu</p>
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {NAV.map(({ href, label, icon: Icon, disabled }) => {
               const active = path === href;
+              if (disabled) {
+                return (
+                  <span
+                    key={href}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-not-allowed select-none"
+                    style={{ color: "var(--muted-fg)" }}
+                    title="Not available in demo"
+                  >
+                    <Icon className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+                    {label}
+                  </span>
+                );
+              }
               return (
                 <Link
                   key={href}
                   href={href}
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    active
-                      ? "text-[#070a0f]"
-                      : "hover:bg-white/5"
+                    active ? "text-[#070a0f]" : "hover:bg-white/5"
                   )}
                   style={active ? { background: "var(--amber)", color: "#070a0f" } : { color: "var(--muted-fg)" }}
                 >

@@ -4,16 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, FolderKanban, Zap, Settings } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Zap, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
-  { href: "/dashboard", label: "Overview",   icon: LayoutDashboard },
-  { href: "/projects",  label: "Projects",   icon: FolderKanban },
-  { href: "/activity",  label: "Activity",   icon: Zap },
-  { href: "/settings",  label: "Settings",   icon: Settings },
+  { href: "/dashboard", label: "Overview",  icon: LayoutDashboard },
+  { href: "/projects",  label: "Projects",  icon: FolderKanban },
+  { href: "/clients",   label: "Clients",   icon: Users },
+  { href: "/activity",  label: "Activity",  icon: Zap },
+  { href: "/settings",  label: "Settings",  icon: Settings },
 ];
 
 export function Sidebar() {

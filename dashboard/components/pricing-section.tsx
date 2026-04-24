@@ -1,24 +1,21 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-function StripeLogo() {
-  return (
-    <svg role="img" aria-label="Stripe" viewBox="0 0 60 25" width="48" height="20">
-      <text
-        x="0"
-        y="19"
-        fontFamily="system-ui, -apple-system, sans-serif"
-        fontWeight="700"
-        fontSize="20"
-        fill="#635bff"
-      >
-        Stripe
-      </text>
-    </svg>
-  );
-}
+const PROVIDERS = [
+  { name: "OpenAI",      color: "#10a37f" },
+  { name: "Anthropic",   color: "#d47520" },
+  { name: "Google AI",   color: "#4285f4" },
+  { name: "DeepSeek",    color: "#1a73e8" },
+  { name: "Mistral",     color: "#f54e42" },
+  { name: "OpenRouter",  color: "#9333ea" },
+  { name: "Together AI", color: "#3b82f6" },
+  { name: "Azure OpenAI",color: "#0078d4" },
+  { name: "AWS Bedrock", color: "#ff9900" },
+  { name: "Ollama",      color: "#8899aa" },
+] as const;
 
 type Plan = {
   id: "free" | "pro" | "agency";
@@ -58,7 +55,7 @@ const PLANS: readonly Plan[] = [
     projects: "10 projects",
     features: [
       "All Free features",
-      "OpenAI · Anthropic · Google · DeepSeek · Ollama (local)",
+      "OpenAI · Anthropic · Google · DeepSeek · Mistral · OpenRouter",
       "Webhooks (Slack, custom)",
       "Auto-downgrade chains",
       "Team members",
@@ -74,7 +71,7 @@ const PLANS: readonly Plan[] = [
     calls: "500,000 calls / month",
     projects: "Unlimited projects",
     features: [
-      "All Pro features incl. Ollama (local)",
+      "All 10 providers incl. Together AI · Azure · AWS Bedrock · Ollama",
       "Custom rate limits per project",
       "White-label proxy URL",
       "Dedicated support SLA",
@@ -84,8 +81,6 @@ const PLANS: readonly Plan[] = [
     highlight: false,
   },
 ] as const;
-
-const PROVIDERS: readonly string[] = ["OpenAI", "Anthropic", "Google", "DeepSeek", "Ollama"];
 
 export function PricingSection() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -228,19 +223,25 @@ export function PricingSection() {
       </div>
 
       <div className="flex flex-col items-center gap-4 mt-10">
-        <p className="text-xs" style={{ color: "#c8d8e8" }}>
-          Cancel anytime. Payments secured by Stripe.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 opacity-80">
-          <StripeLogo />
-          <span className="text-xs" style={{ color: "#c8d8e8" }}>·</span>
-          {PROVIDERS.map((name) => (
+        <div className="flex items-center gap-2">
+          <Image src="/stripe-logo.svg" alt="Stripe" width={42} height={19} />
+          <p className="text-xs" style={{ color: "#c8d8e8" }}>
+            Payments secured by Stripe. Cancel anytime.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <span className="text-xs" style={{ color: "#6b7a8d" }}>Works with:</span>
+          {PROVIDERS.map((p) => (
             <span
-              key={name}
-              className="text-xs font-medium px-2.5 py-1 rounded-full"
-              style={{ border: "1px solid var(--border)", color: "#c8d8e8" }}
+              key={p.name}
+              className="text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{
+                color: p.color,
+                background: `${p.color}22`,
+                border: `1px solid ${p.color}44`,
+              }}
             >
-              {name}
+              {p.name}
             </span>
           ))}
         </div>

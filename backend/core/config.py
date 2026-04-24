@@ -10,13 +10,23 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     google_api_key: str = ""
     deepseek_api_key: str = ""
+    mistral_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    together_api_key: str = ""
+    together_base_url: str = "https://api.together.xyz/v1"
+    azure_openai_api_key: str = ""
+    azure_openai_base_url: str = ""
+    aws_bedrock_access_key: str = ""
+    aws_bedrock_secret_key: str = ""
+    aws_bedrock_region: str = "us-east-1"
     ollama_base_url: str = "http://localhost:11434"
     # ── SMTP for alerts ────────
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    alert_from_email: str = "alerts@budgetforge.io"
+    alert_from_email: str = "ceo@maxiaworld.app"
     # Management API auth (vide = dev mode, aucune auth requise)
     admin_api_key: str = ""
     # ── Stripe billing ─────────
@@ -27,8 +37,8 @@ class Settings(BaseSettings):
     stripe_agency_price_id: str = ""
     app_url: str = "https://llmbudget.maxiaworld.app"
     # ── Environnement ──────────────
-    app_env: str = "development"   # "production" active les guards obligatoires
-    portal_secret: str = ""        # obligatoire en production
+    app_env: str = "development"  # "production" active les guards obligatoires
+    portal_secret: str = ""  # obligatoire en production
 
 
 settings = Settings()

@@ -261,6 +261,57 @@ class TestProviderKey:
         assert used_key == "sk-test-openai"  # clé injectée par conftest
 
 
+FAKE_MISTRAL_RESPONSE = {
+    "id": "chatcmpl-mistral-fake",
+    "object": "chat.completion",
+    "model": "mistral-large-latest",
+    "choices": [{"message": {"role": "assistant", "content": "Bonjour!"}, "finish_reason": "stop"}],
+    "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+}
+
+
+class TestMistralProxy:
+    @pytest.mark.asyncio
+    async def test_proxy_mistral_forwards_request(self, client, project_with_budget):
+        api_key = project_with_budget["api_key"]
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_mistral", new_callable=AsyncMock) as mock_fwd:
+            mock_fwd.return_value = FAKE_MISTRAL_RESPONSE
+            resp = await client.post(
+                "/proxy/mistral/v1/chat/completions",
+                json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": "Bonjour"}]},
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+        assert resp.status_code == 200
+        assert resp.json()["choices"][0]["message"]["content"] == "Bonjour!"
+
+    @pytest.mark.asyncio
+    async def test_proxy_mistral_records_usage(self, client, project_with_budget):
+        api_key = project_with_budget["api_key"]
+        with patch("services.proxy_forwarder.ProxyForwarder.forward_mistral", new_callable=AsyncMock) as mock_fwd:
+            mock_fwd.return_value = FAKE_MISTRAL_RESPONSE
+            await client.post(
+                "/proxy/mistral/v1/chat/completions",
+                json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": "Hi"}]},
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+        usage = (await client.get(f"/api/projects/{project_with_budget['id']}/usage")).json()
+        assert usage["used_usd"] > 0.0
+
+    @pytest.mark.asyncio
+    async def test_proxy_mistral_budget_exceeded_returns_429(self, client):
+        proj = (await client.post("/api/projects", json={"name": "mistral-over"})).json()
+        await client.put(
+            f"/api/projects/{proj['id']}/budget",
+            json={"budget_usd": 0.0, "alert_threshold_pct": 80, "action": "block"}
+        )
+        resp = await client.post(
+            "/proxy/mistral/v1/chat/completions",
+            json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": "Hi"}]},
+            headers={"Authorization": f"Bearer {proj['api_key']}"}
+        )
+        assert resp.status_code == 429
+
+
 class TestOllamaProxy:
     @pytest.mark.asyncio
     async def test_proxy_ollama_counts_tokens_zero_cost(self, client, project_with_budget):

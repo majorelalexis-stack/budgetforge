@@ -5,11 +5,16 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PROVIDER_COLORS: Record<string, string> = {
-  openai:    "#10a37f",
+  openai: "#10a37f",
   anthropic: "#d4622a",
-  google:    "#4285f4",
-  deepseek:  "#5c67f2",
-  ollama:    "#22c55e",
+  google: "#4285f4",
+  deepseek: "#5c67f2",
+  mistral: "#f54e42",
+  ollama: "#22c55e",
+  openrouter: "#9333ea",
+  together: "#3b82f6",
+  "azure-openai": "#0078d4",
+  "aws-bedrock": "#ff9900",
 };
 
 interface ModelSelectProps {
@@ -20,15 +25,23 @@ interface ModelSelectProps {
 }
 
 function ModelItem({
-  model, provider, selected, onSelect,
-}: { model: string; provider: string; selected: boolean; onSelect: () => void }) {
+  model,
+  provider,
+  selected,
+  onSelect,
+}: {
+  model: string;
+  provider: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
 
   const bg = selected
     ? "rgba(245,158,11,0.1)"
     : hovered
-    ? "var(--muted)"
-    : "transparent";
+      ? "var(--muted)"
+      : "transparent";
 
   return (
     <button
@@ -54,7 +67,10 @@ function ModelItem({
     >
       <span
         style={{
-          width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          flexShrink: 0,
           backgroundColor: PROVIDER_COLORS[provider] ?? "#64748b",
         }}
       />
@@ -63,22 +79,32 @@ function ModelItem({
   );
 }
 
-export function ModelSelect({ value, onChange, modelsByProvider, className }: ModelSelectProps) {
+export function ModelSelect({
+  value,
+  onChange,
+  modelsByProvider,
+  className,
+}: ModelSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const currentProvider = Object.entries(modelsByProvider).find(([, models]) =>
-    models.includes(value)
-  )?.[0] ?? null;
+  const currentProvider =
+    Object.entries(modelsByProvider).find(([, models]) =>
+      models.includes(value),
+    )?.[0] ?? null;
 
-  const providerColor = currentProvider ? (PROVIDER_COLORS[currentProvider] ?? "#64748b") : "#64748b";
+  const providerColor = currentProvider
+    ? (PROVIDER_COLORS[currentProvider] ?? "#64748b")
+    : "#64748b";
 
   const filteredProviders: Record<string, string[]> = {};
   const q = query.trim().toLowerCase();
   for (const [provider, models] of Object.entries(modelsByProvider)) {
-    const filtered = q ? models.filter((m) => m.toLowerCase().includes(q)) : models;
+    const filtered = q
+      ? models.filter((m) => m.toLowerCase().includes(q))
+      : models;
     if (filtered.length > 0) filteredProviders[provider] = filtered;
   }
 
@@ -124,7 +150,10 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
 
   useEffect(() => {
     function onOutsideClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         commitTyped();
       }
     }
@@ -149,7 +178,15 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
           cursor: "text",
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, backgroundColor: providerColor }} />
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            flexShrink: 0,
+            backgroundColor: providerColor,
+          }}
+        />
 
         {open ? (
           <input
@@ -157,7 +194,11 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={currentProvider ? `${currentProvider} / ${value}` : (value || "Type or select a model")}
+            placeholder={
+              currentProvider
+                ? `${currentProvider} / ${value}`
+                : value || "Type or select a model"
+            }
             style={{
               flex: 1,
               background: "transparent",
@@ -170,22 +211,29 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
             }}
           />
         ) : (
-          <span style={{
-            flex: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            fontSize: 12,
-            fontFamily: "var(--font-jetbrains, monospace)",
-            color: "var(--foreground)",
-          }}>
-            {currentProvider ? `${currentProvider} / ${value}` : (value || "Type or select a model")}
+          <span
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              fontSize: 12,
+              fontFamily: "var(--font-jetbrains, monospace)",
+              color: "var(--foreground)",
+            }}
+          >
+            {currentProvider
+              ? `${currentProvider} / ${value}`
+              : value || "Type or select a model"}
           </span>
         )}
 
         <ChevronDown
           style={{
-            width: 12, height: 12, flexShrink: 0, color: "var(--muted-fg)",
+            width: 12,
+            height: 12,
+            flexShrink: 0,
+            color: "var(--muted-fg)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.15s ease",
           }}
@@ -212,17 +260,20 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
             {hasResults ? (
               Object.entries(filteredProviders).map(([provider, models]) => (
                 <div key={provider}>
-                  <p style={{
-                    position: "sticky", top: 0,
-                    padding: "4px 8px",
-                    fontSize: 9,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    color: "var(--muted-fg)",
-                    fontWeight: 600,
-                    backgroundColor: "var(--muted)",
-                    margin: 0,
-                  }}>
+                  <p
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      padding: "4px 8px",
+                      fontSize: 9,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      color: "var(--muted-fg)",
+                      fontWeight: 600,
+                      backgroundColor: "var(--muted)",
+                      margin: 0,
+                    }}
+                  >
                     {provider}
                   </p>
                   {models.map((model) => (
@@ -237,12 +288,14 @@ export function ModelSelect({ value, onChange, modelsByProvider, className }: Mo
                 </div>
               ))
             ) : (
-              <div style={{
-                padding: "10px 12px",
-                fontSize: 12,
-                fontFamily: "var(--font-jetbrains, monospace)",
-                color: "var(--muted-fg)",
-              }}>
+              <div
+                style={{
+                  padding: "10px 12px",
+                  fontSize: 12,
+                  fontFamily: "var(--font-jetbrains, monospace)",
+                  color: "var(--muted-fg)",
+                }}
+              >
                 Press Enter to use &ldquo;{query}&rdquo;
               </div>
             )}
